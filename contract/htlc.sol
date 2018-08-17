@@ -11,9 +11,9 @@ pragma experimental "v0.5.0";
  *  1) newContract(receiver, hashlock, timelock) - a sender calls this to create
  *      a new HTLC and gets back a 32 byte contract id
  *  2) withdraw(contractId, preimage) - once the receiver knows the preimage of
- *      the hashlock hash they can claim the ETH with this function
+ *      the hashlock hash they can claim the SEELE with this function
  *  3) refund() - after timelock has expired and if the receiver did not 
- *      withdraw funds the sender / creater of the HTLC can get their ETH 
+ *      withdraw funds the sender / creater of the HTLC can get their SEELE 
  *      back with this function.
  */
 contract HashedTimelock {
