@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/seeleteam/labs/abicommon"
 )
 
 // reads the integer based on its kind
@@ -183,9 +183,9 @@ func toGoType(index int, t Type, output []byte) (interface{}, error) {
 	case BoolTy:
 		return readBool(returnOutput)
 	case AddressTy:
-		return common.BytesToAddress(returnOutput), nil
+		return abicommon.BytesToAddress(returnOutput), nil
 	case HashTy:
-		return common.BytesToHash(returnOutput), nil
+		return abicommon.BytesToHash(returnOutput), nil
 	case BytesTy:
 		return output[begin : begin+end], nil
 	case FixedBytesTy:
@@ -200,7 +200,7 @@ func toGoType(index int, t Type, output []byte) (interface{}, error) {
 // interprets a 32 byte slice as an offset and then determines which indice to look to decode the type.
 func lengthPrefixPointsTo(index int, output []byte) (start int, length int, err error) {
 	bigOffsetEnd := big.NewInt(0).SetBytes(output[index : index+32])
-	bigOffsetEnd.Add(bigOffsetEnd, common.Big32)
+	bigOffsetEnd.Add(bigOffsetEnd, abicommon.Big32)
 	outputLength := big.NewInt(int64(len(output)))
 
 	if bigOffsetEnd.Cmp(outputLength) > 0 {

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/seeleteam/go-seele/crypto"
 )
 
 // Method represents a callable given a `Name` and whether the method is a constant.
@@ -73,5 +73,5 @@ func (method Method) String() string {
 }
 
 func (method Method) Id() []byte {
-	return crypto.Keccak256([]byte(method.Sig()))[:4]
+	return crypto.HashBytes([]byte(method.Sig())).Bytes()[:4]
 }

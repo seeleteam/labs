@@ -1,0 +1,15 @@
+{
+	"Hash": "0x1c57c5a8698296e9026277bf7aed8901b333b13d24715af444d2eb90803777c7",
+	"Data": {
+		"From": "0x0a57a2714e193b7ac50475ce625f2dcfb483d741",
+		"To": "0x13b001e4915c13dcff90f0751b4c145b21110002",
+		"Amount": 0,
+		"AccountNonce": 5,
+		"Fee": 1,
+		"Timestamp": 0,
+		"Payload": "0x7249fbb6d6267fbcabf8a90ce50d25410d1d7ef2876c8dfa91c21e50c8c752d6bcfedfa8"
+	},
+	"Signature": {
+		"Sig": "MXI5jeXpWFk+vQz3cjxeMivgKrE04ZAXDo/p5pJUNCQkeFOpjTfDuIBJDNNtvfjomQCUzsWcGQdA8o/oVVK9WQA="
+	}
+}

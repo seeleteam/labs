@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/seeleteam/go-seele/cmd/util"
@@ -19,6 +20,7 @@ import (
 	"github.com/seeleteam/go-seele/core/types"
 	"github.com/seeleteam/go-seele/crypto"
 	rpc "github.com/seeleteam/go-seele/rpc2"
+	"github.com/seeleteam/labs/contract"
 	"github.com/urfave/cli"
 )
 
@@ -35,14 +37,9 @@ const (
 	hashKeyfile string = "hashkey.json"
 )
 
-type mykey struct {
-	secret     string `json:"secret"`
-	secretHash string `json:"secretHash"`
-}
-
 // Deploy a contract in seele
 func Deploy(c *cli.Context) error {
-	bytecode, err := GetContractByteCode()
+	bytecode, err := contract.GetContractByteCode()
 	if err != nil {
 		return fmt.Errorf("get deploy bytecode err: %s\n", err)
 	}
@@ -58,6 +55,9 @@ func Deploy(c *cli.Context) error {
 	}
 
 	tx, err := generateTx(key.PrivateKey, txdata.To, txdata.Amount, txdata.Fee, txdata.AccountNonce, bytecode)
+	if err != nil {
+		return err
+	}
 	var result bool
 	err = client.Call(&result, "seele_addTx", tx)
 	if err != nil || !result {
@@ -70,7 +70,7 @@ func Deploy(c *cli.Context) error {
 		return fmt.Errorf("json mashalIndet err: %s\n", err)
 	}
 
-	fmt.Println(data)
+	fmt.Printf("%s\n", data)
 	err = saveData(data, deployfile)
 	if err != nil {
 		return fmt.Errorf("save data to %s err: %s\n", deployfile, err)
@@ -82,7 +82,7 @@ func Deploy(c *cli.Context) error {
 
 // Create a contract in the deployed contract to swap
 func Create(c *cli.Context) error {
-	client, contractAddress, txdata, key, seele, err := getBaseInfo()
+	client, _, txdata, key, seele, err := getBaseInfo()
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func Create(c *cli.Context) error {
 	locktime := time.Now().Unix() + 48*60*3600
 	fmt.Println("locktime:", locktime)
 
-	bytecode, err := seele.NewContract(common.BytesToAddress(byteAddr), secretHash, locktime)
+	bytecode, err := seele.NewContract(common.BytesToAddress(byteAddr), secretHash, big.NewInt(locktime))
 	if err != nil {
 		return fmt.Errorf("get create function byte code err: %s\n", err)
 	}
@@ -113,9 +113,9 @@ func Create(c *cli.Context) error {
 		return err
 	}
 
-	var keyInfo mykey
-	keyInfo.secret = secretHex
-	keyInfo.secretHash = secretHashHex
+	keyInfo := make(map[string]string)
+	keyInfo["secret"] = secretHex
+	keyInfo["secretHash"] = secretHashHex
 
 	data, err := json.MarshalIndent(keyInfo, "", "\t")
 	if err != nil {
@@ -132,7 +132,7 @@ func Create(c *cli.Context) error {
 
 // Withdraw seele for the contract with preimage
 func Withdraw(c *cli.Context) error {
-	client, contractAddress, txdata, key, seele, err := getBaseInfo()
+	client, _, txdata, key, seele, err := getBaseInfo()
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func Withdraw(c *cli.Context) error {
 
 // Refund seele after the time lock
 func Refund(c *cli.Context) error {
-	client, contractAddress, txdata, key, seele, err := getBaseInfo()
+	client, _, txdata, key, seele, err := getBaseInfo()
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func getContractAddress(client *rpc.Client) (string, error) {
 
 func readData(file string) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
-	buff, err := ioutil.ReadFile(fmt.Sprintf(dir, file))
+	buff, err := ioutil.ReadFile(filepath.Join(dir, file))
 	if err != nil {
 		return nil, fmt.Errorf("read data err:%s\n", err)
 	}
@@ -253,7 +253,7 @@ func saveData(data []byte, file string) error {
 
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf(dir, file), data, os.ModePerm)
+	err = ioutil.WriteFile(filepath.Join(dir, file), data, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("write file err:%s\n", err)
 	}
@@ -328,12 +328,21 @@ func generateTx(from *ecdsa.PrivateKey, to common.Address, amount *big.Int, fee 
 	var err error
 	if to.IsEmpty() {
 		tx, err = types.NewContractTransaction(*fromAddr, amount, fee, nonce, payload)
+		if err != nil {
+			return nil, fmt.Errorf("create a contract err:%s\n", err)
+		}
 	} else {
 		switch to.Type() {
 		case common.AddressTypeExternal:
 			tx, err = types.NewTransaction(*fromAddr, to, amount, fee, nonce)
+			if err != nil {
+				return nil, fmt.Errorf("create a transaction err:%s\n", err)
+			}
 		case common.AddressTypeContract:
 			tx, err = types.NewMessageTransaction(*fromAddr, to, amount, fee, nonce, payload)
+			if err != nil {
+				return nil, fmt.Errorf("create a message err:%s\n", err)
+			}
 		default:
 			return nil, fmt.Errorf("unsupported address type: %d", to.Type())
 
@@ -349,7 +358,7 @@ func generateTx(from *ecdsa.PrivateKey, to common.Address, amount *big.Int, fee 
 	return tx, nil
 }
 
-func getBaseInfo() (*rpc.Client, string, *types.TransactionData, *keystore.Key, *SeeleContract, error) {
+func getBaseInfo() (*rpc.Client, string, *types.TransactionData, *keystore.Key, *contract.SeeleContract, error) {
 	client, err := makeClient()
 	if err != nil {
 		return nil, "", nil, nil, nil, fmt.Errorf("can not connect to host:%s,err: %s\n", addressValue, err)
@@ -370,7 +379,7 @@ func getBaseInfo() (*rpc.Client, string, *types.TransactionData, *keystore.Key, 
 		return nil, "", nil, nil, nil, fmt.Errorf("contract address hex to byte err: %s\n", err)
 	}
 
-	seele, err := NewSeeleContract(common.BytesToAddress(byteAddr))
+	seele, err := contract.NewSeeleContract(common.BytesToAddress(byteAddr))
 	if err != nil {
 		return nil, "", nil, nil, nil, fmt.Errorf("create SeeleContract type err: %s\n", err)
 	}
@@ -380,6 +389,9 @@ func getBaseInfo() (*rpc.Client, string, *types.TransactionData, *keystore.Key, 
 
 func sendtx(client *rpc.Client, key *keystore.Key, txdata *types.TransactionData, bytecode []byte, file string) error {
 	tx, err := generateTx(key.PrivateKey, txdata.To, txdata.Amount, txdata.Fee, txdata.AccountNonce, bytecode)
+	if err != nil {
+		return err
+	}
 	var result bool
 	err = client.Call(&result, "seele_addTx", tx)
 	if err != nil || !result {
@@ -392,7 +404,7 @@ func sendtx(client *rpc.Client, key *keystore.Key, txdata *types.TransactionData
 		return fmt.Errorf("json mashalIndet err: %s\n", err)
 	}
 
-	fmt.Println(data)
+	fmt.Printf("%s\n", data)
 	err = saveData(data, file)
 	if err != nil {
 		return fmt.Errorf("save data to %s err:%s\n", file, err)

@@ -20,15 +20,15 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/seeleteam/labs/abicommon"
 )
 
 // packBytesSlice packs the given bytes as [L, V] as the canonical representation
 // bytes slice
 func packBytesSlice(bytes []byte, l int) []byte {
 	len := packNum(reflect.ValueOf(l))
-	return append(len, common.RightPadBytes(bytes, (l+31)/32*32)...)
+	return append(len, abicommon.RightPadBytes(bytes, (l+31)/32*32)...)
 }
 
 // packElement packs the given reflect value according to the abi specification in
@@ -44,12 +44,12 @@ func packElement(t Type, reflectValue reflect.Value) []byte {
 			reflectValue = mustArrayToByteSlice(reflectValue)
 		}
 
-		return common.LeftPadBytes(reflectValue.Bytes(), 32)
+		return abicommon.LeftPadBytes(reflectValue.Bytes(), 32)
 	case BoolTy:
 		if reflectValue.Bool() {
-			return math.PaddedBigBytes(common.Big1, 32)
+			return math.PaddedBigBytes(abicommon.Big1, 32)
 		}
-		return math.PaddedBigBytes(common.Big0, 32)
+		return math.PaddedBigBytes(abicommon.Big0, 32)
 	case BytesTy:
 		if reflectValue.Kind() == reflect.Array {
 			reflectValue = mustArrayToByteSlice(reflectValue)
@@ -59,7 +59,7 @@ func packElement(t Type, reflectValue reflect.Value) []byte {
 		if reflectValue.Kind() == reflect.Array {
 			reflectValue = mustArrayToByteSlice(reflectValue)
 		}
-		return common.RightPadBytes(reflectValue.Bytes(), 32)
+		return abicommon.RightPadBytes(reflectValue.Bytes(), 32)
 	default:
 		panic("abi: fatal error")
 	}

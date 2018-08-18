@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/seeleteam/labs/abicommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -120,7 +120,7 @@ var unpackTests = []unpackTest{
 	{
 		def:  `[{"type": "address"}]`,
 		enc:  "0000000000000000000000000100000000000000000000000000000000000000",
-		want: common.Address{1},
+		want: abicommon.Address{1},
 	},
 	{
 		def:  `[{"type": "bytes32"}]`,
@@ -130,7 +130,7 @@ var unpackTests = []unpackTest{
 	{
 		def:  `[{"type": "bytes"}]`,
 		enc:  "000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000200100000000000000000000000000000000000000000000000000000000000000",
-		want: common.Hex2Bytes("0100000000000000000000000000000000000000000000000000000000000000"),
+		want: abicommon.Hex2Bytes("0100000000000000000000000000000000000000000000000000000000000000"),
 	},
 	{
 		def:  `[{"type": "bytes"}]`,
@@ -368,10 +368,10 @@ func methodMultiReturn(require *require.Assertions) (ABI, []byte, methodMultiOut
 	require.NoError(err)
 	// using buff to make the code readable
 	buff := new(bytes.Buffer)
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000005"))
-	buff.Write(common.RightPadBytes([]byte(expected.String), 32))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000005"))
+	buff.Write(abicommon.RightPadBytes([]byte(expected.String), 32))
 	return abi, buff.Bytes(), expected
 }
 
@@ -441,8 +441,8 @@ func TestMultiReturnWithArray(t *testing.T) {
 		t.Fatal(err)
 	}
 	buff := new(bytes.Buffer)
-	buff.Write(common.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000000900000000000000000000000000000000000000000000000000000000000000090000000000000000000000000000000000000000000000000000000000000009"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000008"))
+	buff.Write(abicommon.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000000900000000000000000000000000000000000000000000000000000000000000090000000000000000000000000000000000000000000000000000000000000009"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000008"))
 
 	ret1, ret1Exp := new([3]uint64), [3]uint64{9, 9, 9}
 	ret2, ret2Exp := new(uint64), uint64(8)
@@ -470,14 +470,14 @@ func TestMultiReturnWithDeeplyNestedArray(t *testing.T) {
 	buff := new(bytes.Buffer)
 	// construct the test array, each 3 char element is joined with 61 '0' chars,
 	// to from the ((3 + 61) * 0.5) = 32 byte elements in the array.
-	buff.Write(common.Hex2Bytes(strings.Join([]string{
+	buff.Write(abicommon.Hex2Bytes(strings.Join([]string{
 		"", //empty, to apply the 61-char separator to the first element as well.
 		"111", "112", "113", "121", "122", "123",
 		"211", "212", "213", "221", "222", "223",
 		"311", "312", "313", "321", "322", "323",
 		"411", "412", "413", "421", "422", "423",
 	}, "0000000000000000000000000000000000000000000000000000000000000")))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000009876"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000009876"))
 
 	ret1, ret1Exp := new([4][2][3]uint64), [4][2][3]uint64{
 		{{0x111, 0x112, 0x113}, {0x121, 0x122, 0x123}},
@@ -516,14 +516,14 @@ func TestUnmarshal(t *testing.T) {
 	buff := new(bytes.Buffer)
 
 	// marshall mixed bytes (mixedBytes)
-	p0, p0Exp := []byte{}, common.Hex2Bytes("01020000000000000000")
-	p1, p1Exp := [32]byte{}, common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000ddeeff")
+	p0, p0Exp := []byte{}, abicommon.Hex2Bytes("01020000000000000000")
+	p1, p1Exp := [32]byte{}, abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000ddeeff")
 	mixedBytes := []interface{}{&p0, &p1}
 
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000ddeeff"))
-	buff.Write(common.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000000a"))
-	buff.Write(common.Hex2Bytes("0102000000000000000000000000000000000000000000000000000000000000"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000ddeeff"))
+	buff.Write(abicommon.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000000a"))
+	buff.Write(abicommon.Hex2Bytes("0102000000000000000000000000000000000000000000000000000000000000"))
 
 	err = abi.Unpack(&mixedBytes, "mixedBytes", buff.Bytes())
 	if err != nil {
@@ -540,7 +540,7 @@ func TestUnmarshal(t *testing.T) {
 
 	// marshal int
 	var Int *big.Int
-	err = abi.Unpack(&Int, "int", common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
+	err = abi.Unpack(&Int, "int", abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -551,7 +551,7 @@ func TestUnmarshal(t *testing.T) {
 
 	// marshal bool
 	var Bool bool
-	err = abi.Unpack(&Bool, "bool", common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
+	err = abi.Unpack(&Bool, "bool", abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -562,9 +562,9 @@ func TestUnmarshal(t *testing.T) {
 
 	// marshal dynamic bytes max length 32
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
-	bytesOut := common.RightPadBytes([]byte("hello"), 32)
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
+	bytesOut := abicommon.RightPadBytes([]byte("hello"), 32)
 	buff.Write(bytesOut)
 
 	var Bytes []byte
@@ -579,9 +579,9 @@ func TestUnmarshal(t *testing.T) {
 
 	// marshall dynamic bytes max length 64
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040"))
-	bytesOut = common.RightPadBytes([]byte("hello"), 64)
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040"))
+	bytesOut = abicommon.RightPadBytes([]byte("hello"), 64)
 	buff.Write(bytesOut)
 
 	err = abi.Unpack(&Bytes, "bytes", buff.Bytes())
@@ -595,9 +595,9 @@ func TestUnmarshal(t *testing.T) {
 
 	// marshall dynamic bytes max length 64
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
-	buff.Write(common.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000003f"))
-	bytesOut = common.RightPadBytes([]byte("hello"), 64)
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
+	buff.Write(abicommon.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000003f"))
+	bytesOut = abicommon.RightPadBytes([]byte("hello"), 64)
 	buff.Write(bytesOut)
 
 	err = abi.Unpack(&Bytes, "bytes", buff.Bytes())
@@ -617,9 +617,9 @@ func TestUnmarshal(t *testing.T) {
 
 	// marshal dynamic bytes length 5
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000005"))
-	buff.Write(common.RightPadBytes([]byte("hello"), 32))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000005"))
+	buff.Write(abicommon.RightPadBytes([]byte("hello"), 32))
 
 	err = abi.Unpack(&Bytes, "bytes", buff.Bytes())
 	if err != nil {
@@ -632,22 +632,22 @@ func TestUnmarshal(t *testing.T) {
 
 	// marshal dynamic bytes length 5
 	buff.Reset()
-	buff.Write(common.RightPadBytes([]byte("hello"), 32))
+	buff.Write(abicommon.RightPadBytes([]byte("hello"), 32))
 
-	var hash common.Hash
+	var hash abicommon.Hash
 	err = abi.Unpack(&hash, "fixed", buff.Bytes())
 	if err != nil {
 		t.Error(err)
 	}
 
-	helloHash := common.BytesToHash(common.RightPadBytes([]byte("hello"), 32))
+	helloHash := abicommon.BytesToHash(abicommon.RightPadBytes([]byte("hello"), 32))
 	if hash != helloHash {
 		t.Errorf("Expected %x to equal %x", hash, helloHash)
 	}
 
 	// marshal error
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020"))
 	err = abi.Unpack(&Bytes, "bytes", buff.Bytes())
 	if err == nil {
 		t.Error("expected error")
@@ -659,9 +659,9 @@ func TestUnmarshal(t *testing.T) {
 	}
 
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000002"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000003"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000002"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000003"))
 	// marshal int array
 	var intArray [3]*big.Int
 	err = abi.Unpack(&intArray, "intArraySingle", buff.Bytes())
@@ -680,11 +680,11 @@ func TestUnmarshal(t *testing.T) {
 	}
 	// marshal address slice
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")) // offset
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")) // size
-	buff.Write(common.Hex2Bytes("0000000000000000000000000100000000000000000000000000000000000000"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")) // offset
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")) // size
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000100000000000000000000000000000000000000"))
 
-	var outAddr []common.Address
+	var outAddr []abicommon.Address
 	err = abi.Unpack(&outAddr, "addressSliceSingle", buff.Bytes())
 	if err != nil {
 		t.Fatal("didn't expect error:", err)
@@ -694,23 +694,23 @@ func TestUnmarshal(t *testing.T) {
 		t.Fatal("expected 1 item, got", len(outAddr))
 	}
 
-	if outAddr[0] != (common.Address{1}) {
-		t.Errorf("expected %x, got %x", common.Address{1}, outAddr[0])
+	if outAddr[0] != (abicommon.Address{1}) {
+		t.Errorf("expected %x, got %x", abicommon.Address{1}, outAddr[0])
 	}
 
 	// marshal multiple address slice
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")) // offset
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000080")) // offset
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")) // size
-	buff.Write(common.Hex2Bytes("0000000000000000000000000100000000000000000000000000000000000000"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000002")) // size
-	buff.Write(common.Hex2Bytes("0000000000000000000000000200000000000000000000000000000000000000"))
-	buff.Write(common.Hex2Bytes("0000000000000000000000000300000000000000000000000000000000000000"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")) // offset
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000080")) // offset
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")) // size
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000100000000000000000000000000000000000000"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000002")) // size
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000200000000000000000000000000000000000000"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000300000000000000000000000000000000000000"))
 
 	var outAddrStruct struct {
-		A []common.Address
-		B []common.Address
+		A []abicommon.Address
+		B []abicommon.Address
 	}
 	err = abi.Unpack(&outAddrStruct, "addressSliceDouble", buff.Bytes())
 	if err != nil {
@@ -721,24 +721,24 @@ func TestUnmarshal(t *testing.T) {
 		t.Fatal("expected 1 item, got", len(outAddrStruct.A))
 	}
 
-	if outAddrStruct.A[0] != (common.Address{1}) {
-		t.Errorf("expected %x, got %x", common.Address{1}, outAddrStruct.A[0])
+	if outAddrStruct.A[0] != (abicommon.Address{1}) {
+		t.Errorf("expected %x, got %x", abicommon.Address{1}, outAddrStruct.A[0])
 	}
 
 	if len(outAddrStruct.B) != 2 {
 		t.Fatal("expected 1 item, got", len(outAddrStruct.B))
 	}
 
-	if outAddrStruct.B[0] != (common.Address{2}) {
-		t.Errorf("expected %x, got %x", common.Address{2}, outAddrStruct.B[0])
+	if outAddrStruct.B[0] != (abicommon.Address{2}) {
+		t.Errorf("expected %x, got %x", abicommon.Address{2}, outAddrStruct.B[0])
 	}
-	if outAddrStruct.B[1] != (common.Address{3}) {
-		t.Errorf("expected %x, got %x", common.Address{3}, outAddrStruct.B[1])
+	if outAddrStruct.B[1] != (abicommon.Address{3}) {
+		t.Errorf("expected %x, got %x", abicommon.Address{3}, outAddrStruct.B[1])
 	}
 
 	// marshal invalid address slice
 	buff.Reset()
-	buff.Write(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000100"))
+	buff.Write(abicommon.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000100"))
 
 	err = abi.Unpack(&outAddr, "addressSliceSingle", buff.Bytes())
 	if err == nil {

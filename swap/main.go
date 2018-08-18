@@ -26,10 +26,11 @@ func main() {
 			Flags: []cli.Flag{
 				addressFlag,
 				fromFlag,
+				amountFlag,
 				feeFlag,
 				nonceFlag,
 			},
-			Action: RPCAction(GetInfoAction),
+			Action: Deploy,
 		},
 		{
 			Name:  "create",
@@ -42,7 +43,7 @@ func main() {
 				feeFlag,
 				nonceFlag,
 			},
-			Action: RPCAction(GetInfoAction),
+			Action: Create,
 		},
 		{
 			Name:  "withdraw",
@@ -51,10 +52,11 @@ func main() {
 				addressFlag,
 				fromFlag,
 				toFlag,
+				amountFlag,
 				feeFlag,
 				nonceFlag,
 			},
-			Action: RPCAction(GetInfoAction),
+			Action: Withdraw,
 		},
 		{
 			Name:  "refund",
@@ -63,10 +65,11 @@ func main() {
 				addressFlag,
 				fromFlag,
 				toFlag,
+				amountFlag,
 				feeFlag,
 				nonceFlag,
 			},
-			Action: RPCAction(GetInfoAction),
+			Action: Refund,
 		},
 	}
 
