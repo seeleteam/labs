@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"math/big"
 	"strings"
 
 	"github.com/seeleteam/go-seele/common"
@@ -49,7 +50,7 @@ func (seele *SeeleContract) GetContract(_contractId [32]byte) ([]byte, error) {
 }
 
 // NewContract return the NewContract function bytecode
-func (seele *SeeleContract) NewContract(_receiver common.Address, _hashlock [32]byte, _timelock int64) ([]byte, error) {
+func (seele *SeeleContract) NewContract(_receiver common.Address, _hashlock [32]byte, _timelock *big.Int) ([]byte, error) {
 	return seele.getFuncByteCode("newContract", _receiver, _hashlock, _timelock)
 }
 
