@@ -35,7 +35,7 @@ var (
 	amountValue string
 	amountFlag  = cli.StringFlag{
 		Name:        "amount",
-		Usage:       "amount value, unit is fan",
+		Usage:       "amount value, unit is fan(default 0)",
 		Destination: &amountValue,
 	}
 
@@ -52,5 +52,19 @@ var (
 		Value:       0,
 		Usage:       "transaction nonce",
 		Destination: &nonceValue,
+	}
+
+	secretHashValue string
+	secretHashFlag  = cli.StringFlag{
+		Name:        "secrethash",
+		Usage:       "hash of secret by sha256",
+		Destination: &secretHashValue,
+	}
+
+	secretValue string
+	secretFlag  = cli.StringFlag{
+		Name:        "secret",
+		Usage:       "value of secret, the preimage of secret hash",
+		Destination: &secretValue,
 	}
 )

@@ -64,6 +64,11 @@ func (seele *SeeleContract) Withdraw(_contractId [32]byte, _preimage [32]byte) (
 	return seele.getFuncByteCode("withdraw", _contractId, _preimage)
 }
 
+// GetContractInfo returns tht contract info
+func (seele *SeeleContract) GetContractInfo(_contractId [32]byte) ([]byte, error) {
+	return seele.getFuncByteCode("getContract", _contractId)
+}
+
 func (seele *SeeleContract) getFuncByteCode(method string, params ...interface{}) ([]byte, error) {
 	return seele.Abi.Pack(method, params...)
 }
