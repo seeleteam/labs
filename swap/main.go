@@ -61,7 +61,7 @@ func main() {
 		},
 		{
 			Name:  "withdraw",
-			Usage: "get seele from the contract",
+			Usage: "withdraw seele from the contract",
 			Flags: []cli.Flag{
 				addressFlag,
 				fromFlag,
