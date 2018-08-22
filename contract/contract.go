@@ -69,6 +69,11 @@ func (seele *SeeleContract) GetContractInfo(_contractId [32]byte) ([]byte, error
 	return seele.getFuncByteCode("getContract", _contractId)
 }
 
+// Unpack return unpacked value
+func (seele *SeeleContract) Unpack(v interface{}, method string, data []byte) error {
+	return seele.Abi.Unpack(v, method, data)
+}
+
 func (seele *SeeleContract) getFuncByteCode(method string, params ...interface{}) ([]byte, error) {
 	return seele.Abi.Pack(method, params...)
 }

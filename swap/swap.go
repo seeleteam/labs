@@ -20,6 +20,7 @@ import (
 	"github.com/seeleteam/go-seele/core/types"
 	"github.com/seeleteam/go-seele/crypto"
 	rpc "github.com/seeleteam/go-seele/rpc2"
+	"github.com/seeleteam/labs/abicommon"
 	"github.com/seeleteam/labs/contract"
 	"github.com/urfave/cli"
 )
@@ -30,14 +31,37 @@ const (
 
 	defaultAmount string = "0"
 
-	dir          string = "./config/"
-	deployfile   string = "deploy.json"
-	createfile   string = "create.json"
-	contractfile string = "contract.json"
-	withdrawfile string = "withdraw.json"
-	refundfile   string = "refund.json"
-	hashKeyfile  string = "hashkey.json"
+	dir              string = "./config/"
+	deployfile       string = "deploy.json"
+	createfile       string = "create.json"
+	contractfile     string = "contract.json"
+	withdrawfile     string = "withdraw.json"
+	refundfile       string = "refund.json"
+	hashKeyfile      string = "hashkey.json"
+	contractInfofile string = "contractinfo.json"
 )
+
+type contractInfo struct {
+	Sender    abicommon.Address
+	Receiver  abicommon.Address
+	Amount    *big.Int
+	Hashlock  [32]byte
+	Timelock  *big.Int
+	Withdrawn bool
+	Refunded  bool
+	Preimage  [32]byte
+}
+
+type printInfo struct {
+	Sender    abicommon.Address
+	Receiver  abicommon.Address
+	Amount    *big.Int
+	Hashlock  string
+	Timelock  *big.Int
+	Withdrawn bool
+	Refunded  bool
+	Preimage  string
+}
 
 // Deploy a contract in seele
 func Deploy(c *cli.Context) error {
@@ -82,39 +106,14 @@ func Deploy(c *cli.Context) error {
 
 }
 
-// Create a contract in the deployed contract to swap
+// Create a contract in the deployed contract to swap, time lock 48 hours
 func Create(c *cli.Context) error {
-	client, _, txdata, key, seele, err := getBaseInfo(amountValue)
-	if err != nil {
-		return err
-	}
+	return create(48)
+}
 
-	byteAddr, err := hexutil.HexToBytes(toValue)
-
-	locktime := time.Now().Unix() + 48*60*3600
-	fmt.Println("locktime:", locktime)
-
-	secretHash, err := hexutil.HexToBytes(secretHashValue)
-	if err != nil {
-		return fmt.Errorf("secret hash err%s\n:", err)
-	}
-
-	secretHashbyte32, err := getByte32(secretHash)
-	if err != nil {
-		return err
-	}
-
-	bytecode, err := seele.NewContract(common.BytesToAddress(byteAddr), secretHashbyte32, big.NewInt(locktime))
-	if err != nil {
-		return fmt.Errorf("get create function byte code err: %s\n", err)
-	}
-
-	err = sendtx(client, key, txdata, bytecode, createfile)
-	if err != nil {
-		return err
-	}
-
-	return nil
+// Participate create a contract on other chain, time lock 24 hours
+func Participate(c *cli.Context) error {
+	return create(24)
 }
 
 // Withdraw seele for the contract with preimage
@@ -195,12 +194,7 @@ func GetContractInfo(c *cli.Context) error {
 		return err
 	}
 
-	contractIdStr, err := getContractId(client)
-	if err != nil {
-		return err
-	}
-
-	slice, err := hexutil.HexToBytes(contractIdStr)
+	slice, err := hexutil.HexToBytes(contractIdValue)
 	if err != nil {
 		return err
 	}
@@ -248,6 +242,92 @@ func GenSecret(c *cli.Context) error {
 
 	return nil
 
+}
+
+// Unpack decode the result by contarct id
+func Unpack(c *cli.Context) error {
+	client, err := makeClient()
+	if err != nil {
+		return fmt.Errorf("can not connect to host:%s, err: %s\n", addressValue, err)
+	}
+
+	var result map[string]interface{}
+	err = client.Call(&result, "txpool_getReceiptByTxHash", hashValue)
+	if err != nil {
+		return fmt.Errorf("get receipt err:%s\n", err)
+	}
+
+	seele, err := contract.NewSeeleContract(common.EmptyAddress)
+	if err != nil {
+		return fmt.Errorf("create SeeleContract type err: %s\n", err)
+	}
+
+	data, err := hexutil.HexToBytes(result["result"].(string))
+	if err != nil {
+		return fmt.Errorf("result hex to bytes err:%s\n", err)
+	}
+
+	var info contractInfo
+	err = seele.Unpack(&info, "getContract", data)
+	if err != nil {
+		return fmt.Errorf("unpack err:%s\n", err)
+	}
+
+	var print printInfo
+	print.Amount = info.Amount
+	print.Hashlock = hexutil.BytesToHex(info.Hashlock[:])
+	print.Preimage = hexutil.BytesToHex(info.Preimage[:])
+	print.Receiver = info.Receiver
+	print.Refunded = info.Refunded
+	print.Sender = info.Sender
+	print.Timelock = info.Timelock
+	print.Withdrawn = info.Withdrawn
+
+	data, err = json.MarshalIndent(print, "", "\t")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("data:%s\n", data)
+	err = saveData(data, contractInfofile)
+	if err != nil {
+		return fmt.Errorf("create %s err:%s\n", contractInfofile, err)
+	}
+
+	return nil
+}
+
+func create(hour int64) error {
+	client, _, txdata, key, seele, err := getBaseInfo(amountValue)
+	if err != nil {
+		return err
+	}
+
+	byteAddr, err := hexutil.HexToBytes(toValue)
+
+	locktime := time.Now().Unix() + hour*3600
+	fmt.Println("locktime:", locktime)
+
+	secretHash, err := hexutil.HexToBytes(secretHashValue)
+	if err != nil {
+		return fmt.Errorf("secret hash err%s\n:", err)
+	}
+
+	secretHashbyte32, err := getByte32(secretHash)
+	if err != nil {
+		return err
+	}
+
+	bytecode, err := seele.NewContract(common.BytesToAddress(byteAddr), secretHashbyte32, big.NewInt(locktime))
+	if err != nil {
+		return fmt.Errorf("get create function byte code err: %s\n", err)
+	}
+
+	err = sendtx(client, key, txdata, bytecode, createfile)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func makeClient() (*rpc.Client, error) {

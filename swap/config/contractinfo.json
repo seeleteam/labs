@@ -1,0 +1,10 @@
+{
+	"Sender": "0x025af35f527dfab6ddbdc39da16870e4906e6fe1",
+	"Receiver": "0x9eba855ed272e71e41bdf1bb8f9b86486e5849c1",
+	"Amount": 100000000,
+	"Hashlock": "0xc323368f9ab07a0c47f27591406cb93a0da1ab26704727907c64541639c07412",
+	"Timelock": 1545213987,
+	"Withdrawn": true,
+	"Refunded": false,
+	"Preimage": "0xde8f7127cd09e20a4d35efce3aa6f68a44ce45260b9b2b303904b554e01630b1"
+}

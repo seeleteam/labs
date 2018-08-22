@@ -67,4 +67,18 @@ var (
 		Usage:       "value of secret, the preimage of secret hash",
 		Destination: &secretValue,
 	}
+
+	contractIdValue string
+	contractIdFlag  = cli.StringFlag{
+		Name:        "contractId",
+		Usage:       "contract id of the transaction id",
+		Destination: &contractIdValue,
+	}
+
+	hashValue string
+	hashFlag  = cli.StringFlag{
+		Name:        "hash",
+		Usage:       "hash of contract or tracsaction",
+		Destination: &hashValue,
+	}
 )
