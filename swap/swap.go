@@ -28,13 +28,15 @@ const (
 	// DefaultNonce is the default value of nonce,when you are not set the nonce flag in client sendtx command by --nonce .
 	DefaultNonce uint64 = 0
 
+	defaultAmount string = "0"
+
 	dir          string = "./config/"
 	deployfile   string = "deploy.json"
 	createfile   string = "create.json"
+	contractfile string = "contract.json"
 	withdrawfile string = "withdraw.json"
 	refundfile   string = "refund.json"
-
-	hashKeyfile string = "hashkey.json"
+	hashKeyfile  string = "hashkey.json"
 )
 
 // Deploy a contract in seele
@@ -49,7 +51,7 @@ func Deploy(c *cli.Context) error {
 		return fmt.Errorf("can not connect to host:%s,err: %s\n", addressValue, err)
 	}
 
-	txdata, key, err := makeTransaction(client, "")
+	txdata, key, err := makeTransaction(client, "", defaultAmount)
 	if err != nil {
 		return fmt.Errorf("make tx data err: %s\n", err)
 	}
@@ -82,28 +84,27 @@ func Deploy(c *cli.Context) error {
 
 // Create a contract in the deployed contract to swap
 func Create(c *cli.Context) error {
-	client, _, txdata, key, seele, err := getBaseInfo()
+	client, _, txdata, key, seele, err := getBaseInfo(amountValue)
 	if err != nil {
 		return err
 	}
 
 	byteAddr, err := hexutil.HexToBytes(toValue)
-	secret := make([]byte, 32)
-	_, err = rand.Read(secret[:])
-	if err != nil {
-		return fmt.Errorf("rand secret error: %s\n", err)
-	}
-
-	secretHash := sha256Hash(secret[:])
-	secretHex := hexutil.BytesToHex(secret)
-	secretHashHex := hexutil.BytesToHex(secretHash[:])
-	fmt.Println("secret hex:", secretHex)
-	fmt.Println("secretHash hex:", secretHashHex)
 
 	locktime := time.Now().Unix() + 48*60*3600
 	fmt.Println("locktime:", locktime)
 
-	bytecode, err := seele.NewContract(common.BytesToAddress(byteAddr), secretHash, big.NewInt(locktime))
+	secretHash, err := hexutil.HexToBytes(secretHashValue)
+	if err != nil {
+		return fmt.Errorf("secret hash err%s\n:", err)
+	}
+
+	secretHashbyte32, err := getByte32(secretHash)
+	if err != nil {
+		return err
+	}
+
+	bytecode, err := seele.NewContract(common.BytesToAddress(byteAddr), secretHashbyte32, big.NewInt(locktime))
 	if err != nil {
 		return fmt.Errorf("get create function byte code err: %s\n", err)
 	}
@@ -113,26 +114,22 @@ func Create(c *cli.Context) error {
 		return err
 	}
 
-	keyInfo := make(map[string]string)
-	keyInfo["secret"] = secretHex
-	keyInfo["secretHash"] = secretHashHex
-
-	data, err := json.MarshalIndent(keyInfo, "", "\t")
-	if err != nil {
-		return fmt.Errorf("key info json mashalIndet err: %s\n", err)
-	}
-
-	err = saveData(data, hashKeyfile)
-	if err != nil {
-		return fmt.Errorf("save data to %s err:%s\n", hashKeyfile, err)
-	}
-
 	return nil
 }
 
 // Withdraw seele for the contract with preimage
 func Withdraw(c *cli.Context) error {
-	client, _, txdata, key, seele, err := getBaseInfo()
+	client, _, txdata, key, seele, err := getBaseInfo(defaultAmount)
+	if err != nil {
+		return err
+	}
+
+	secretSlice, err := hexutil.HexToBytes(secretValue)
+	if err != nil {
+		return fmt.Errorf("secret err:%s\n", err)
+	}
+
+	secretData, err := getByte32(secretSlice)
 	if err != nil {
 		return err
 	}
@@ -152,21 +149,6 @@ func Withdraw(c *cli.Context) error {
 		return err
 	}
 
-	secret, err := getSecret()
-	if err != nil {
-		return err
-	}
-
-	secretSlice, err := hexutil.HexToBytes(secret)
-	if err != nil {
-		return err
-	}
-
-	secretData, err := getByte32(secretSlice)
-	if err != nil {
-		return err
-	}
-
 	bytecode, err := seele.Withdraw(contractId, secretData)
 	err = sendtx(client, key, txdata, bytecode, withdrawfile)
 	if err != nil {
@@ -178,7 +160,7 @@ func Withdraw(c *cli.Context) error {
 
 // Refund seele after the time lock
 func Refund(c *cli.Context) error {
-	client, _, txdata, key, seele, err := getBaseInfo()
+	client, _, txdata, key, seele, err := getBaseInfo(defaultAmount)
 	if err != nil {
 		return err
 	}
@@ -206,9 +188,70 @@ func Refund(c *cli.Context) error {
 	return nil
 }
 
+// GetContractInfo return Contract info by id
+func GetContractInfo(c *cli.Context) error {
+	client, _, txdata, key, seele, err := getBaseInfo(defaultAmount)
+	if err != nil {
+		return err
+	}
+
+	contractIdStr, err := getContractId(client)
+	if err != nil {
+		return err
+	}
+
+	slice, err := hexutil.HexToBytes(contractIdStr)
+	if err != nil {
+		return err
+	}
+
+	contractId, err := getByte32(slice)
+	if err != nil {
+		return err
+	}
+	bytecode, err := seele.GetContractInfo(contractId)
+	err = sendtx(client, key, txdata, bytecode, contractfile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GenSecret make a 32 bytes secret and secret hash
+func GenSecret(c *cli.Context) error {
+	secret := make([]byte, 32)
+	_, err := rand.Read(secret[:])
+	if err != nil {
+		return fmt.Errorf("rand secret error: %s\n", err)
+	}
+
+	secretHash := sha256Hash(secret[:])
+	secretHex := hexutil.BytesToHex(secret)
+	secretHashHex := hexutil.BytesToHex(secretHash[:])
+	fmt.Println("secret hex:", secretHex)
+	fmt.Println("secretHash hex:", secretHashHex)
+
+	keyInfo := make(map[string]string)
+	keyInfo["secret"] = secretHex
+	keyInfo["secretHash"] = secretHashHex
+
+	data, err := json.MarshalIndent(keyInfo, "", "\t")
+	if err != nil {
+		return fmt.Errorf("key info json mashalIndet err: %s\n", err)
+	}
+
+	err = saveData(data, hashKeyfile)
+	if err != nil {
+		return fmt.Errorf("save data to %s err:%s\n", hashKeyfile, err)
+	}
+
+	return nil
+
+}
+
 func makeClient() (*rpc.Client, error) {
 	return rpc.DialTCP(context.Background(), addressValue)
-
 }
 
 func sha256Hash(x []byte) [32]byte {
@@ -261,7 +304,7 @@ func saveData(data []byte, file string) error {
 	return nil
 }
 
-func makeTransaction(client *rpc.Client, to string) (*types.TransactionData, *keystore.Key, error) {
+func makeTransaction(client *rpc.Client, to string, amount string) (*types.TransactionData, *keystore.Key, error) {
 	pass, err := common.GetPassword()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get password %s\n", err)
@@ -282,11 +325,11 @@ func makeTransaction(client *rpc.Client, to string) (*types.TransactionData, *ke
 		info.To = toAddr
 	}
 
-	amount, ok := big.NewInt(0).SetString(amountValue, 10)
+	amountNum, ok := big.NewInt(0).SetString(amount, 10)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid amount value")
 	}
-	info.Amount = amount
+	info.Amount = amountNum
 
 	fee, ok := big.NewInt(0).SetString(feeValue, 10)
 	if !ok {
@@ -318,7 +361,6 @@ func makeTransaction(client *rpc.Client, to string) (*types.TransactionData, *ke
 	}
 
 	return info, key, nil
-
 }
 
 func generateTx(from *ecdsa.PrivateKey, to common.Address, amount *big.Int, fee *big.Int, nonce uint64, payload []byte) (*types.Transaction, error) {
@@ -358,7 +400,7 @@ func generateTx(from *ecdsa.PrivateKey, to common.Address, amount *big.Int, fee 
 	return tx, nil
 }
 
-func getBaseInfo() (*rpc.Client, string, *types.TransactionData, *keystore.Key, *contract.SeeleContract, error) {
+func getBaseInfo(amount string) (*rpc.Client, string, *types.TransactionData, *keystore.Key, *contract.SeeleContract, error) {
 	client, err := makeClient()
 	if err != nil {
 		return nil, "", nil, nil, nil, fmt.Errorf("can not connect to host:%s,err: %s\n", addressValue, err)
@@ -369,7 +411,7 @@ func getBaseInfo() (*rpc.Client, string, *types.TransactionData, *keystore.Key, 
 		return nil, "", nil, nil, nil, fmt.Errorf("get contract address err: %s\n", err)
 	}
 
-	txdata, key, err := makeTransaction(client, contractAddress)
+	txdata, key, err := makeTransaction(client, contractAddress, amount)
 	if err != nil {
 		return nil, "", nil, nil, nil, fmt.Errorf("make tx data err:%s\n", err)
 	}
