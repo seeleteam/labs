@@ -72,7 +72,7 @@ func Deploy(c *cli.Context) error {
 
 	client, err := makeClient()
 	if err != nil {
-		return fmt.Errorf("Failed to connect to host:%s,err: %s\n", addressValue, err)
+		return fmt.Errorf("Failed to connect to host: %s,err: %s\n", addressValue, err)
 	}
 
 	txdata, key, err := makeTransaction(client, "", defaultAmount)
@@ -93,7 +93,7 @@ func Deploy(c *cli.Context) error {
 	fmt.Println("transaction sent successfully")
 	data, err := json.MarshalIndent(tx, "", "\t")
 	if err != nil {
-		return fmt.Errorf("Failed json MarshalIndent err: %s\n", err)
+		return fmt.Errorf("Failed to marshal tx err: %s\n", err)
 	}
 
 	fmt.Printf("%s\n", data)
@@ -231,7 +231,7 @@ func GenSecret(c *cli.Context) error {
 
 	data, err := json.MarshalIndent(keyInfo, "", "\t")
 	if err != nil {
-		return fmt.Errorf("Failed to make keyInfo json MarshalIndent err: %s\n", err)
+		return fmt.Errorf("Failed to marshal json keyinfo err: %s\n", err)
 	}
 
 	err = saveData(data, hashKeyfile)
@@ -307,7 +307,7 @@ func create(hour int64) error {
 
 	secretHash, err := hexutil.HexToBytes(secretHashValue)
 	if err != nil {
-		return fmt.Errorf("Failed secret-hex hash to bytes err: %s\n", err)
+		return fmt.Errorf("Failed to convert secret-hex hash to bytes err: %s\n", err)
 	}
 
 	secretHashbyte32, err := getByte32(secretHash)
@@ -361,7 +361,7 @@ func readData(file string) (map[string]interface{}, error) {
 
 	err = json.Unmarshal(buff, &result)
 	if err != nil {
-		return nil, fmt.Errorf("Failed json unmarshal err: %s\n", err)
+		return nil, fmt.Errorf("Failed to unmarshal json err: %s\n", err)
 	}
 
 	return result, nil
@@ -428,7 +428,7 @@ func makeTransaction(client *rpc.Client, to string, amount string) (*types.Trans
 			info.AccountNonce = nonce
 		} else {
 			if nonceValue < nonce {
-				return nil, nil, fmt.Errorf("Failed your nonce is: %d, current nonce is: %d, you must set your nonce greater than or equal to current nonce", nonceValue, nonce)
+				return nil, nil, fmt.Errorf("Invalid nonce: %d, current nonce is: %d, you must set your nonce greater than or equal to current nonce", nonceValue, nonce)
 			}
 			info.AccountNonce = nonceValue
 		}
@@ -464,7 +464,7 @@ func generateTx(from *ecdsa.PrivateKey, to common.Address, amount *big.Int, fee 
 				return nil, fmt.Errorf("Failed to create a message err: %s\n", err)
 			}
 		default:
-			return nil, fmt.Errorf("Failed unsupported address type: %d\n", to.Type())
+			return nil, fmt.Errorf("unsupported address type: %d\n", to.Type())
 
 		}
 	}
@@ -496,7 +496,7 @@ func getBaseInfo(amount string) (*rpc.Client, string, *types.TransactionData, *k
 
 	byteAddr, err := hexutil.HexToBytes(contractAddress)
 	if err != nil {
-		return nil, "", nil, nil, nil, fmt.Errorf("Failed contract address hex to byte err: %s\n", err)
+		return nil, "", nil, nil, nil, fmt.Errorf("Failed to convert contract address hex to bytes err: %s\n", err)
 	}
 
 	seele, err := contract.NewSeeleContract(common.BytesToAddress(byteAddr))
@@ -521,7 +521,7 @@ func sendtx(client *rpc.Client, key *keystore.Key, txdata *types.TransactionData
 	fmt.Println("transaction sent successfully")
 	data, err := json.MarshalIndent(tx, "", "\t")
 	if err != nil {
-		return fmt.Errorf("Failed json MarshalIndent err: %s\n", err)
+		return fmt.Errorf("Failed to marshal json err: %s\n", err)
 	}
 
 	fmt.Printf("%s\n", data)
@@ -550,7 +550,7 @@ func getContractId(client *rpc.Client) (string, error) {
 
 func getByte32(v []byte) ([32]byte, error) {
 	if len(v) != 32 {
-		return [32]byte{}, fmt.Errorf("Failed the value is not 32 bytes, len is: %d\n", len(v))
+		return [32]byte{}, fmt.Errorf("The length %d is invalid, should be 32\n", len(v))
 	}
 
 	var data [32]byte
