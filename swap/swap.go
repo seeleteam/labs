@@ -20,6 +20,7 @@ import (
 	"github.com/seeleteam/go-seele/core/types"
 	"github.com/seeleteam/go-seele/crypto"
 	rpc "github.com/seeleteam/go-seele/rpc2"
+	"github.com/seeleteam/go-seele/seele"
 	"github.com/seeleteam/labs/abicommon"
 	"github.com/seeleteam/labs/contract"
 	"github.com/urfave/cli"
@@ -34,6 +35,7 @@ const (
 	dir              string = "./config/"
 	deployfile       string = "deploy.json"
 	createfile       string = "create.json"
+	participatefile  string = "participate.json"
 	contractfile     string = "contract.json"
 	withdrawfile     string = "withdraw.json"
 	refundfile       string = "refund.json"
@@ -107,12 +109,12 @@ func Deploy(c *cli.Context) error {
 
 // Create a contract in the deployed contract to swap, time lock 48 hours
 func Create(c *cli.Context) error {
-	return create(48)
+	return create(48, createfile)
 }
 
 // Participate create a contract in the deployed contract to swap on other chain, time lock 24 hours
 func Participate(c *cli.Context) error {
-	return create(24)
+	return create(24, participatefile)
 }
 
 // Withdraw seele from the contract with preimage
@@ -132,12 +134,7 @@ func Withdraw(c *cli.Context) error {
 		return err
 	}
 
-	contractIdStr, err := getContractId(client)
-	if err != nil {
-		return err
-	}
-
-	slice, err := hexutil.HexToBytes(contractIdStr)
+	slice, err := hexutil.HexToBytes(contractIdValue)
 	if err != nil {
 		return err
 	}
@@ -163,12 +160,7 @@ func Refund(c *cli.Context) error {
 		return err
 	}
 
-	contractIdStr, err := getContractId(client)
-	if err != nil {
-		return err
-	}
-
-	slice, err := hexutil.HexToBytes(contractIdStr)
+	slice, err := hexutil.HexToBytes(contractIdValue)
 	if err != nil {
 		return err
 	}
@@ -285,7 +277,7 @@ func Unpack(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("data:%s\n", data)
+	fmt.Printf("%s\n", data)
 	err = saveData(data, contractInfofile)
 	if err != nil {
 		return fmt.Errorf("Failed to create %s err: %s\n", contractInfofile, err)
@@ -294,7 +286,64 @@ func Unpack(c *cli.Context) error {
 	return nil
 }
 
-func create(hour int64) error {
+// GetReceipt get transaction receipt by hash
+func GetReceipt(c *cli.Context) error {
+	client, err := makeClient()
+	if err != nil {
+		return fmt.Errorf("Failed to connect to host: %s err: %s\n", addressValue, err)
+	}
+
+	var result map[string]interface{}
+	err = client.Call(&result, "txpool_getReceiptByTxHash", hashValue)
+	if err != nil {
+		return fmt.Errorf("Failed to get receipt err: %s\n", err)
+	}
+
+	data, err := json.MarshalIndent(result, "", "\t")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s\n", data)
+
+	return nil
+}
+
+// getBalance
+func GetBalance(c *cli.Context) error {
+	account, err := MakeAddress(accountValue)
+	if err != nil {
+		return fmt.Errorf("Failed to convert account hex to address err: %s\n", err)
+	}
+
+	client, err := makeClient()
+	if err != nil {
+		return fmt.Errorf("Failed to connect to host: %s err: %s\n", addressValue, err)
+	}
+
+	var result seele.GetBalanceResponse
+	err = client.Call(&result, "seele_getBalance", account)
+	if err != nil {
+		return fmt.Errorf("Failed to get balance err: %s\n", err)
+	}
+
+	data, err := json.MarshalIndent(result, "", "\t")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s\n", data)
+
+	return err
+}
+
+func MakeAddress(value string) (common.Address, error) {
+	if value == "" {
+		return common.EmptyAddress, nil
+	} else {
+		return common.HexToAddress(value)
+	}
+}
+
+func create(hour int64, file string) error {
 	client, _, txdata, key, seele, err := getBaseInfo(amountValue)
 	if err != nil {
 		return err
@@ -320,7 +369,7 @@ func create(hour int64) error {
 		return fmt.Errorf("Failed to get create function byte code err: %s\n", err)
 	}
 
-	err = sendtx(client, key, txdata, bytecode, createfile)
+	err = sendtx(client, key, txdata, bytecode, file)
 	if err != nil {
 		return err
 	}
