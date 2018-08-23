@@ -81,4 +81,11 @@ var (
 		Usage:       "hash of contract or tracsaction",
 		Destination: &hashValue,
 	}
+
+	accountValue string
+	accountFlag  = cli.StringFlag{
+		Name:        "account",
+		Usage:       "account address",
+		Destination: &accountValue,
+	}
 )

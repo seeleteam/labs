@@ -67,6 +67,7 @@ func main() {
 				fromFlag,
 				secretFlag,
 				feeFlag,
+				contractIdFlag,
 				nonceFlag,
 			},
 			Action: Withdraw,
@@ -78,6 +79,7 @@ func main() {
 				addressFlag,
 				fromFlag,
 				feeFlag,
+				contractIdFlag,
 				nonceFlag,
 			},
 			Action: Refund,
@@ -89,8 +91,8 @@ func main() {
 				addressFlag,
 				fromFlag,
 				feeFlag,
-				nonceFlag,
 				contractIdFlag,
+				nonceFlag,
 			},
 			Action: GetContractInfo,
 		},
@@ -107,6 +109,24 @@ func main() {
 				hashFlag,
 			},
 			Action: Unpack,
+		},
+		{
+			Name:  "getreceipt",
+			Usage: "get receipt by transaction hash",
+			Flags: []cli.Flag{
+				addressFlag,
+				hashFlag,
+			},
+			Action: GetReceipt,
+		},
+		{
+			Name:  "getbalance",
+			Usage: "get account balance",
+			Flags: []cli.Flag{
+				addressFlag,
+				accountFlag,
+			},
+			Action: GetBalance,
 		},
 	}
 
