@@ -308,7 +308,7 @@ func GetReceipt(c *cli.Context) error {
 	return nil
 }
 
-// getBalance
+// GetBalance returns the account balance
 func GetBalance(c *cli.Context) error {
 	account, err := MakeAddress(accountValue)
 	if err != nil {
